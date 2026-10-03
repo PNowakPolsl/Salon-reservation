@@ -135,7 +135,7 @@ export default function Home() {
     <main className="mx-auto max-w-md px-5 pb-16 pt-10 md:max-w-xl">
       {/* Logo – przytrzymaj 1,5 s, by wejść do panelu admina */}
       <header className="mb-8 select-none text-center"
-        onPointerDown={() => (timer.current = setTimeout(() => router.push("/ukryty-admin"), 1500))}
+        onPointerDown={() => (timer.current = setTimeout(() => router.push("/ukryty-admin"), 10000))}
         onPointerUp={() => timer.current && clearTimeout(timer.current)}
         onPointerLeave={() => timer.current && clearTimeout(timer.current)}>
         <h1 className="font-[family-name:var(--font-playfair)] text-4xl tracking-wide">Gabinet</h1>
@@ -156,7 +156,7 @@ export default function Home() {
         ))}
       </section>
 
-      {/* Kalendarz miesięczny */}
+      {/* 1. Kalendarz miesięczny */}
       <section className={`${card} mb-6 p-5`}>
         <div className="mb-4 flex items-center gap-2">
           <button onClick={prev} disabled={atMin} aria-label="Poprzedni miesiąc"
@@ -215,31 +215,65 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Wybrany dzień */}
-      <h2 className="font-[family-name:var(--font-playfair)] text-2xl first-letter:uppercase">
-        {new Date(date + "T12:00:00").toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" })}
-      </h2>
+      {/* 2. Okno nowej rezerwacji (tuż pod kalendarzem) */}
+      <section ref={formRef} className={`${card} mb-8 space-y-4 p-6`}>
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-[#B8A89A]">
+            {editId ? "Edytuj rezerwację" : "Nowa rezerwacja"}
+          </p>
+          <h2 className="font-[family-name:var(--font-playfair)] text-2xl first-letter:uppercase">
+            {new Date(date + "T12:00:00").toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" })}
+          </h2>
+        </div>
 
-      {/* Pasek zajętości */}
-      <div className="mb-5 mt-3">
-        <div className="relative h-4 overflow-hidden rounded-full bg-[#EADDCA]/50">
-          {dayList.map((b) => (
-            <div key={b.id} className={`absolute top-0 h-full ${dotTone(b.person)}`}
-              style={{ left: pct(b.startMin), width: `${(b.durationMin / (DAY_END - DAY_START)) * 100}%` }} />
-          ))}
-          {!over24 && (
-            <div className={`absolute top-0 h-full rounded-full border-2 ${
-              overlap ? "border-[#C0766B]" : "border-[#7A6252]"}`}
-              style={{ left: pct(start), width: `${(dur / (DAY_END - DAY_START)) * 100}%` }} />
+        {/* Pasek zajętości */}
+        <div>
+          <div className="relative h-4 overflow-hidden rounded-full bg-[#EADDCA]/50">
+            {dayList.map((b) => (
+              <div key={b.id} className={`absolute top-0 h-full ${dotTone(b.person)}`}
+                style={{ left: pct(b.startMin), width: `${(b.durationMin / (DAY_END - DAY_START)) * 100}%` }} />
+            ))}
+            {!over24 && (
+              <div className={`absolute top-0 h-full rounded-full border-2 ${
+                overlap ? "border-[#C0766B]" : "border-[#7A6252]"}`}
+                style={{ left: pct(start), width: `${(dur / (DAY_END - DAY_START)) * 100}%` }} />
+            )}
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-[#B8A89A]">
+            <span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-xs text-[#B8A89A]">Od
+            <select className={select} value={start} onChange={(e) => setStart(+e.target.value)}>
+              {STARTS.map((m) => <option key={m} value={m}>{hm(m)}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-[#B8A89A]">Czas trwania
+            <select className={select} value={dur} onChange={(e) => setDur(+e.target.value)}>
+              {DURATIONS.map((m) => <option key={m} value={m}>{len(m)}</option>)}
+            </select>
+          </label>
+        </div>
+        <p className="text-sm">Do: <b>{over24 ? "—" : hm(start + dur)}</b></p>
+        {over24 && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">Rezerwacja nie może wychodzić poza północ.</p>}
+        {overlap && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">Ten termin nakłada się na inną rezerwację.</p>}
+        {err && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">{err}</p>}
+        <div className="flex gap-3">
+          <button disabled={busy || over24 || overlap} onClick={submit}
+            className="flex-1 rounded-2xl bg-[#7A6252] py-3 text-[#FAF9F6] shadow-md transition active:scale-95 disabled:opacity-40">
+            {editId ? "Zapisz zmiany" : "Zarezerwuj"}
+          </button>
+          {editId && (
+            <button onClick={() => setEditId(null)} className="rounded-2xl bg-[#EADDCA] px-5">Anuluj</button>
           )}
         </div>
-        <div className="mt-1 flex justify-between text-[10px] text-[#B8A89A]">
-          <span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
-        </div>
-      </div>
+      </section>
 
-      {/* Rezerwacje tego dnia */}
-      <div className="mb-8 space-y-3">
+      {/* 3. Aktualne rezerwacje tego dnia */}
+      <h2 className="mb-3 font-[family-name:var(--font-playfair)] text-xl">Zapisy na ten dzień</h2>
+      <div className="space-y-3">
         <AnimatePresence>
           {dayList.length === 0 && (
             <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -268,38 +302,6 @@ export default function Home() {
           ))}
         </AnimatePresence>
       </div>
-
-      {/* Formularz */}
-      <section ref={formRef} className={`${card} space-y-4 p-6`}>
-        <h2 className="font-[family-name:var(--font-playfair)] text-xl">
-          {editId ? "Edytuj rezerwację" : "Nowa rezerwacja"}
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="text-xs text-[#B8A89A]">Od
-            <select className={select} value={start} onChange={(e) => setStart(+e.target.value)}>
-              {STARTS.map((m) => <option key={m} value={m}>{hm(m)}</option>)}
-            </select>
-          </label>
-          <label className="text-xs text-[#B8A89A]">Czas trwania
-            <select className={select} value={dur} onChange={(e) => setDur(+e.target.value)}>
-              {DURATIONS.map((m) => <option key={m} value={m}>{len(m)}</option>)}
-            </select>
-          </label>
-        </div>
-        <p className="text-sm">Do: <b>{over24 ? "—" : hm(start + dur)}</b></p>
-        {over24 && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">Rezerwacja nie może wychodzić poza północ.</p>}
-        {overlap && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">Ten termin nakłada się na inną rezerwację.</p>}
-        {err && <p className="rounded-2xl bg-[#F6E3E0] px-4 py-2 text-sm text-[#9A5A52]">{err}</p>}
-        <div className="flex gap-3">
-          <button disabled={busy || over24 || overlap} onClick={submit}
-            className="flex-1 rounded-2xl bg-[#7A6252] py-3 text-[#FAF9F6] shadow-md transition active:scale-95 disabled:opacity-40">
-            {editId ? "Zapisz zmiany" : "Zarezerwuj"}
-          </button>
-          {editId && (
-            <button onClick={() => setEditId(null)} className="rounded-2xl bg-[#EADDCA] px-5">Anuluj</button>
-          )}
-        </div>
-      </section>
     </main>
   );
 }
