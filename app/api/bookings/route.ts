@@ -21,7 +21,8 @@ function valid(b: any) {
     PEOPLE.includes(b?.person) &&
     /^\d{4}-\d{2}-\d{2}$/.test(b?.date) &&
     Number.isInteger(b?.startMin) && Number.isInteger(b?.durationMin) &&
-    b.durationMin >= 30 && b.startMin >= 0 && b.startMin + b.durationMin <= 1440
+    b.startMin % 15 === 0 && b.durationMin % 15 === 0 &&
+    b.durationMin >= 15 && b.startMin >= 0 && b.startMin + b.durationMin <= 1440
   );
 }
 
